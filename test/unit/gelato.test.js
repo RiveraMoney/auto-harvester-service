@@ -40,14 +40,12 @@ describe("GelatoExample", () => {
         ])
         //for tojen transfer
         const whale = ethers.provider.getSigner(accountToImpersonate)
-        // console.log(whale, "whale")
-        // let _token = await ethers.getContractAt(
-        //     "IERC20",
-        //     "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
-        // )
-        // console.log(_token.address, "token address")
-        // let tokenwhaleBalance = await _token.balanceOf(whale.address)
-        // console.log(`token balance of whale:`, tokenwhaleBalance)
+        console.log(whale, "whale")
+        // const resp = await whale.sendTransaction({
+        //     to: "0x4c820EAd2af56eF7e577eB533eF326A452214119",
+        //     value: ethers.utils.parseEther("0.002"),
+        // })
+        // console.log("funded from miner account, @ blocknum:", resp.blockNumber)
 
         //end token tranfes
 
@@ -115,7 +113,7 @@ describe("GelatoExample", () => {
         // )
     })
 
-    it.only("tokenToBaseTokenConversionRate check for reward", async () => {
+    it("tokenToBaseTokenConversionRate check for reward", async () => {
         let k1 = await tokenToBaseTokenConversionRate(REWARD, accounts[0])
         let k2 = await GelatoResolver.tokenToBaseTokenConversionRate(REWARD)
         assert.equal(k1.toString(), k2.toString())
@@ -149,7 +147,7 @@ describe("GelatoExample", () => {
         })
     })
 
-    it("netCapitalDeposited", async () => {
+    it.only("netCapitalDeposited", async () => {
         let k1 = await netCapitalDeposited(Vaults[0], accounts[0])
 
         let k2 = await GelatoResolver.netCapitalDeposited(Vaults[0])

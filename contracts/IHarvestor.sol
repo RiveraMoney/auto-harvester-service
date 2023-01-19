@@ -7,4 +7,6 @@ pragma solidity ^0.8.0;
 
 interface IHarvestor {
     function harvestVault(address[] memory) external;
+
+    function updateWhitelist(address) external;
 }
