@@ -11,8 +11,10 @@ contract Harvester {
 
     // Modifiers
     modifier onlyOwner() {
-        if (msg.sender != i_owner || msg.sender != whitelistedAddress)
-            revert Not_whitelisted();
+        require(
+            msg.sender == i_owner || msg.sender == whitelistedAddress,
+            "!not whitelisted"
+        );
         _;
     }
 
