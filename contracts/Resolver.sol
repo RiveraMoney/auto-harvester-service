@@ -83,9 +83,11 @@ contract Resolver {
         view
         returns (bool canExec, bytes memory execPayload)
     {
-        address[] memory retVaults;
         uint256 j = 0;
         address[] memory allVaults = getAllVaults();
+        address[] memory retVaults = new address[](allVaults.length);
+        canExec = false;
+
         for (uint256 i = 0; i < allVaults.length; i++) {
             address vault = allVaults[i];
             uint256 harvestAmount = getHarvestAmount(vault);
@@ -93,17 +95,52 @@ contract Resolver {
             //     ((2 * vaultAmount) / cost);
             // uint256 H = x * vaultAmount;
             uint256 H = getStepwiseH(vault);
-            if (H >= harvestAmount) {
+            if (harvestAmount >= H) {
+                canExec = true;
                 retVaults[j++] = vault;
             }
         }
 
-        canExec = retVaults.length >= 1;
         execPayload = abi.encodeWithSelector(
             IHarvestor.harvestVault.selector,
             (retVaults)
         );
     }
+
+    // temperory checker
+    /*function checker()
+        external
+        view
+        returns (
+            bool canExec,
+            bytes memory execPayload,
+            address[] memory
+        )
+    {
+        // address[] memory retVaults;
+        uint256 j = 0;
+        address[] memory allVaults = getAllVaults();
+        address[] memory retVaults = new address[](allVaults.length);
+        canExec = false;
+        for (uint256 i = 0; i < allVaults.length; i++) {
+            address vault = allVaults[i];
+            uint256 harvestAmount = getHarvestAmount(vault);
+            // uint256 x = (1 + sqrt(1 + (8 * vaultAmount) / cost)) /
+            //     ((2 * vaultAmount) / cost);
+            // uint256 H = x * vaultAmount;
+            // uint256 H = getStepwiseH(vault);
+            if (harvestAmount > 10000000000000000) {
+                canExec = true;
+                retVaults[j++] = vault;
+            }
+        }
+
+        execPayload = abi.encodeWithSelector(
+            IHarvestor.harvestVault.selector,
+            (retVaults)
+        );
+        return (canExec, execPayload, retVaults);
+    }*/
 
     //return all the vaults created
     function getAllVaults() public view returns (address[] memory) {
@@ -126,7 +163,7 @@ contract Resolver {
 
     function costOfHarvest() public view returns (uint256 _amount) {
         uint256 gasEstimation = 419310;
-        uint256 gasPrice = 6; //temmp //get price from some oracle;
+        uint256 gasPrice = 5000000000; //6;  //temmp //get price from some oracle;
 
         uint256 costHarvest = gasEstimation * gasPrice;
         uint256 nativeGasToBaseConversionRate = tokenToBaseTokenConversionRate(
@@ -156,6 +193,7 @@ contract Resolver {
             (sqrt((uint256(1).add((uint256(8).mul(vaultAmount)))).div(cost)))
         );
         uint256 y = (uint256(2).mul(vaultAmount)).div(cost);
+
         H = x.mul(vaultAmount).div(y);
     }
 

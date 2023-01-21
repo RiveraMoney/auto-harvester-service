@@ -29,8 +29,12 @@ contract Harvester {
 
     function harvestVault(address[] memory retVaults) public onlyOwner {
         for (uint256 i = 0; i < retVaults.length; i++) {
-            address strategyContract = IVault(retVaults[i]).strategy();
-            IStrategy(strategyContract).managerHarvest();
+            if (retVaults[i] == address(0)) {
+                continue;
+            } else {
+                address strategyContract = IVault(retVaults[i]).strategy();
+                IStrategy(strategyContract).harvest();
+            }
         }
     }
 }

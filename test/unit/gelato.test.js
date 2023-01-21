@@ -40,7 +40,7 @@ describe("GelatoExample", () => {
         ])
         //for tojen transfer
         const whale = ethers.provider.getSigner(accountToImpersonate)
-        console.log(whale, "whale")
+        // console.log(whale, "whale")
         // const resp = await whale.sendTransaction({
         //     to: "0x4c820EAd2af56eF7e577eB533eF326A452214119",
         //     value: ethers.utils.parseEther("0.002"),
@@ -87,25 +87,33 @@ describe("GelatoExample", () => {
         )
         console.log("VaultFactory", VaultFactory.address)
         Vaults = await VaultFactory.listAllVaults()
+        console.log("Vaults", Vaults)
+
+        const gasFeeData = await ethers.provider.getFeeData()
+        if (!gasFeeData.gasPrice)
+            throw new Error("ethers.js did not return prevailing gas price!")
+        console.log(
+            `Prevailing gas price in the blockchain for transaction: ${gasFeeData.gasPrice.toNumber()}`
+        )
 
         // Gelato SDK
 
-        const { taskId, tx } = await gelatoOps.createTask({
-            execAddress: Harvester.address,
-            execSelector: Harvester.interface.getSighash(
-                "harvestVault(address[])"
-            ),
-            // execAbi: JSON.stringify(harvesterAbi),
-            resolverAddress: GelatoResolver.address,
-            resolverData: GelatoResolver.interface.getSighash("checker()"),
-            // resolverAbi: JSON.stringify(resolverAbi),
-            name: "Gelato pancake harvester",
-            dedicatedMsgSender: true,
-            // useTreasury: false,
-        })
+        // const { taskId, tx } = await gelatoOps.createTask({
+        //     execAddress: Harvester.address,
+        //     execSelector: Harvester.interface.getSighash(
+        //         "harvestVault(address[])"
+        //     ),
+        //     // execAbi: JSON.stringify(harvesterAbi),
+        //     resolverAddress: GelatoResolver.address,
+        //     resolverData: GelatoResolver.interface.getSighash("checker()"),
+        //     // resolverAbi: JSON.stringify(resolverAbi),
+        //     name: "Gelato pancake harvester",
+        //     dedicatedMsgSender: true,
+        //     // useTreasury: false,
+        // })
 
-        console.log("TaskId:", taskId)
-        console.log("Transac:", tx)
+        // console.log("TaskId:", taskId)
+        // console.log("Transac:", tx)
 
         // console.log(
         //     "get dedicated msg sender",
@@ -115,7 +123,9 @@ describe("GelatoExample", () => {
 
     it("tokenToBaseTokenConversionRate check for reward", async () => {
         let k1 = await tokenToBaseTokenConversionRate(REWARD, accounts[0])
+        console.log("k1", k1)
         let k2 = await GelatoResolver.tokenToBaseTokenConversionRate(REWARD)
+        console.log("k2", k2.toString())
         assert.equal(k1.toString(), k2.toString())
         // done()
         return new Promise((resolve) => {
@@ -125,7 +135,9 @@ describe("GelatoExample", () => {
 
     it("tokenToBaseTokenConversionRate check for native gas", async () => {
         let k1 = await tokenToBaseTokenConversionRate(NATIVE_GAS, accounts[0])
+        console.log("k1", k1)
         let k2 = await GelatoResolver.tokenToBaseTokenConversionRate(NATIVE_GAS)
+        console.log("k2", k2.toString())
         assert.equal(k1.toString(), k2.toString())
         return new Promise((resolve) => {
             resolve()
@@ -137,9 +149,12 @@ describe("GelatoExample", () => {
             "0x0eD7e52944161450477ee417DE9Cd3a859b14fD0",
             accounts[0]
         )
+        console.log("k1", k1.toString())
         let k2 = await GelatoResolver.lpTokenToBaseTokenConversionRate(
             "0x0eD7e52944161450477ee417DE9Cd3a859b14fD0" //cake-bnb lp
         )
+        console.log("k2", k2.toString())
+
         assert.equal(k1.toString(), k2.toString())
 
         return new Promise((resolve) => {
@@ -147,10 +162,11 @@ describe("GelatoExample", () => {
         })
     })
 
-    it.only("netCapitalDeposited", async () => {
-        let k1 = await netCapitalDeposited(Vaults[0], accounts[0])
-
+    it("netCapitalDeposited", async () => {
+        let k1 = await netCapitalDeposited(Vaults[0], accounts[1])
+        // console.log("netCapitalDeposited", k1.toString())
         let k2 = await GelatoResolver.netCapitalDeposited(Vaults[0])
+        console.log("netCapitalDeposited", k2.toString())
 
         assert.equal(k1.toString(), k2.toString())
 
@@ -160,10 +176,10 @@ describe("GelatoExample", () => {
     })
 
     it("getHarvestAmount", async () => {
-        let k1 = await getHarvestAmount(Vaults[0], accounts[0])
-        console.log("unharvested amount", k1.toString())
-        let k2 = await GelatoResolver.getHarvestAmount(Vaults[0])
-        // console.log(k2, k2.toString())
+        let k1 = await getHarvestAmount(Vaults[1], accounts[1])
+        // console.log("unharvested amount", k1.toString())
+        let k2 = await GelatoResolver.getHarvestAmount(Vaults[1])
+        console.log("unharvested amount", k2.toString())
 
         assert.equal(k1.toString(), k2.toString())
 
@@ -174,21 +190,8 @@ describe("GelatoExample", () => {
 
     it("costOfHarvest", async () => {
         let k1 = await costOfHarvest()
-        console.log("k1", k1.toString())
+        // console.log("k1", k1.toString())
         let k2 = await GelatoResolver.costOfHarvest()
-        console.log(k2, k2.toString())
-
-        assert.equal(k1.toString(), k2.toString())
-
-        return new Promise(async (resolve) => {
-            resolve()
-        })
-    })
-
-    it("getStepwiseH", async () => {
-        let k1 = await getStepwiseH(Vaults[0], accounts[0])
-        console.log("StepwiseH", k1.toString())
-        let k2 = await GelatoResolver.getStepwiseH(Vaults[0])
         console.log(k2, k2.toString())
 
         // assert.equal(k1.toString(), k2.toString())
@@ -198,7 +201,20 @@ describe("GelatoExample", () => {
         })
     })
 
-    it("checker", async () => {
+    it("getStepwiseH", async () => {
+        let k1 = await getStepwiseH(Vaults[0], accounts[0])
+        // console.log("StepwiseH", k1.toString())
+        let k2 = await GelatoResolver.getStepwiseH(Vaults[0])
+        console.log("StepwiseH", k2.toString())
+
+        // assert.equal(k1.toString(), k2.toString())
+
+        return new Promise(async (resolve) => {
+            resolve()
+        })
+    })
+
+    it.only("checker", async () => {
         let response = await GelatoResolver.checker()
         console.log("responseof checker", response)
 
@@ -214,7 +230,7 @@ describe("GelatoExample", () => {
 
 const costOfHarvest = async () => {
     let gasEstimation = 419310
-    let gasPrice = 6 //temmp //get price from some oracle;
+    let gasPrice = 5000000000 //6 // 7 //temmp //get price from some oracle;
 
     let costHarvest = gasEstimation * gasPrice
     let nativeGasToBaseConversionRate = await tokenToBaseTokenConversionRate(
