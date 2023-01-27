@@ -91,10 +91,12 @@ contract Resolver {
         for (uint256 i = 0; i < allVaults.length; i++) {
             address vault = allVaults[i];
             uint256 harvestAmount = getHarvestAmount(vault);
-            // uint256 x = (1 + sqrt(1 + (8 * vaultAmount) / cost)) /
-            //     ((2 * vaultAmount) / cost);
-            // uint256 H = x * vaultAmount;
-            uint256 H = getStepwiseH(vault);
+            uint256 cost = costOfHarvest();
+            uint256 vaultAmount = netCapitalDeposited(vault);
+            if (cost > vaultAmount) {
+                continue;
+            }
+            uint256 H = getStepwiseH(cost, vaultAmount);
             if (harvestAmount >= H) {
                 canExec = true;
                 retVaults[j++] = vault;
@@ -162,8 +164,8 @@ contract Resolver {
     }
 
     function costOfHarvest() public view returns (uint256 _amount) {
-        uint256 gasEstimation = 419310;
-        uint256 gasPrice = 5000000000; //6;  //temmp //get price from some oracle;
+        uint256 gasEstimation = 533966;
+        uint256 gasPrice = 7303301330; //6;  //temmp //get price from some oracle;
 
         uint256 costHarvest = gasEstimation * gasPrice;
         uint256 nativeGasToBaseConversionRate = tokenToBaseTokenConversionRate(
@@ -186,7 +188,22 @@ contract Resolver {
         return currRewardsAvailableBase;
     }
 
-    function getStepwiseH(address vault) public view returns (uint256 H) {
+    function getStepwiseH(uint256 cost, uint256 vaultAmount)
+        public
+        pure
+        returns (uint256 H)
+    {
+        // uint256 vaultAmount = netCapitalDeposited(vault);
+        // uint256 cost = costOfHarvest();
+        uint256 x = uint256(1).add(
+            (sqrt((uint256(1).add((uint256(8).mul(vaultAmount)))).div(cost)))
+        );
+        uint256 y = (uint256(2).mul(vaultAmount)).div(cost);
+
+        H = x.mul(vaultAmount).div(y);
+    }
+
+    function getStepwiseHTemp(address vault) public view returns (uint256 H) {
         uint256 vaultAmount = netCapitalDeposited(vault);
         uint256 cost = costOfHarvest();
         uint256 x = uint256(1).add(

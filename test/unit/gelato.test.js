@@ -163,9 +163,9 @@ describe("GelatoExample", () => {
     })
 
     it("netCapitalDeposited", async () => {
-        let k1 = await netCapitalDeposited(Vaults[0], accounts[1])
+        let k1 = await netCapitalDeposited(Vaults[1], accounts[1])
         // console.log("netCapitalDeposited", k1.toString())
-        let k2 = await GelatoResolver.netCapitalDeposited(Vaults[0])
+        let k2 = await GelatoResolver.netCapitalDeposited(Vaults[1])
         console.log("netCapitalDeposited", k2.toString())
 
         assert.equal(k1.toString(), k2.toString())
@@ -190,9 +190,9 @@ describe("GelatoExample", () => {
 
     it("costOfHarvest", async () => {
         let k1 = await costOfHarvest()
-        // console.log("k1", k1.toString())
+        console.log("k1", k1.toString())
         let k2 = await GelatoResolver.costOfHarvest()
-        console.log(k2, k2.toString())
+        // console.log(k2, k2.toString())
 
         // assert.equal(k1.toString(), k2.toString())
 
@@ -201,10 +201,14 @@ describe("GelatoExample", () => {
         })
     })
 
-    it("getStepwiseH", async () => {
-        let k1 = await getStepwiseH(Vaults[0], accounts[0])
+    it.only("getStepwiseH", async () => {
+        let k1 = await getStepwiseH(Vaults[1], accounts[0])
         // console.log("StepwiseH", k1.toString())
-        let k2 = await GelatoResolver.getStepwiseH(Vaults[0])
+        let k2 = await GelatoResolver.getStepwiseH(
+            (await costOfHarvest()).toString(),
+            (await netCapitalDeposited(Vaults[1])).toString()
+        )
+        // let k2 = await GelatoResolver.getStepwiseHTemp(Vaults[1])
         console.log("StepwiseH", k2.toString())
 
         // assert.equal(k1.toString(), k2.toString())
@@ -214,7 +218,7 @@ describe("GelatoExample", () => {
         })
     })
 
-    it.only("checker", async () => {
+    it("checker", async () => {
         let response = await GelatoResolver.checker()
         console.log("responseof checker", response)
 
@@ -229,8 +233,8 @@ describe("GelatoExample", () => {
 //functions
 
 const costOfHarvest = async () => {
-    let gasEstimation = 419310
-    let gasPrice = 5000000000 //6 // 7 //temmp //get price from some oracle;
+    let gasEstimation = 533966 // 419310 //533966
+    let gasPrice = 7303301330 //6 // 7 //temmp //get price from some oracle;
 
     let costHarvest = gasEstimation * gasPrice
     let nativeGasToBaseConversionRate = await tokenToBaseTokenConversionRate(
