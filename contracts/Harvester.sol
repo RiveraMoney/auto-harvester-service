@@ -5,9 +5,10 @@ import "./IVault.sol";
 
 error Not_whitelisted();
 
-contract Harvester {
+contract Harvester {        //Emit event on harvest to do analysis. Make the cost used to calculate harvestability of each vault and total cost paid to Gelato as part of the event.
     address public whitelistedAddress;
     address private immutable i_owner;
+    //Have a harvest run id here that keeps incrementing on every run
 
     // Modifiers
     modifier onlyOwner() {

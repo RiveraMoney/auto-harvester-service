@@ -8,7 +8,7 @@ import "./IPancakeFactory.sol";
 import "./IlpContract.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-contract Resolver {
+contract Resolver {     //Emit events in relevant places
     using SafeMath for uint256;
 
     // Type Declarations
@@ -163,6 +163,14 @@ contract Resolver {
         return netInvestedCapitalBase;
     }
 
+    //Cost of harvest does not represent the cost incurred by us here. Gelato has it's own additional cost as well. We should get the cost from gelato.
+    //The challenge here is gelato charges at a call level. We harvest all vaults that satisfies the harvest condition in one call. So the cost we would receive from gelato is for harvesting multiple vaults.
+    //To figure out the cost of harvesting one vault we would need the number of vaults to be harvested. The number of vaults to be harvested would in turn depend on the cost of harvesting one vault.
+
+    //An alternate approach I have in mind is. We deploy a checker contract for each vault deployed in Rivera. The checker would easily get the cost of harvesting it's own vault alone. 
+    //After getting the cost we would compute the harvestability condition and call harvest.
+    //1) Which account should have the GEL tokens in order for the call to execult successfully?
+    //2) If each of the checker contracts need the GEL tokens to pay then this architecture won't work.
     function costOfHarvest() public view returns (uint256 _amount) {
         uint256 gasEstimation = 533966;
         uint256 gasPrice = 7303301330; //6;  //temmp //get price from some oracle;
@@ -214,6 +222,7 @@ contract Resolver {
         H = x.mul(vaultAmount).div(y);
     }
 
+    //Need some explanation on this function
     function sqrt(uint256 y) internal pure returns (uint256 z) {
         if (y > 3) {
             z = y;
