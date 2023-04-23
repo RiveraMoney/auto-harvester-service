@@ -201,9 +201,9 @@ describe("GelatoExample", () => {
         })
     })
 
-    it.only("getStepwiseH", async () => {
+    it("getStepwiseH", async () => {
         let k1 = await getStepwiseH(Vaults[1], accounts[0])
-        // console.log("StepwiseH", k1.toString())
+        console.log("StepwiseH", k1.toString())
         let k2 = await GelatoResolver.getStepwiseH(
             (await costOfHarvest()).toString(),
             (await netCapitalDeposited(Vaults[1])).toString()
