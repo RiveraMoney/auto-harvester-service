@@ -18,6 +18,7 @@ contract Resolver {     //Emit events in relevant places
     address public NATIVE_GAS;
     address public BASE_CURRENCY;
 
+    //Constructor will stay the same
     constructor(
         address _riveraFactory,
         address _PANCAKE_FACTORY,
@@ -40,7 +41,7 @@ contract Resolver {     //Emit events in relevant places
         return tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
     }
 
-    function tokenToBaseTokenConversionRate(address token)
+    function tokenToBaseTokenConversionRate(address token)      //Should change this function to use DEx V3. Follow what is done in convertAmount0ToAmount1 and convertAmount1ToAmount0 in CakeLpStakingV2.sol
         public
         view
         returns (uint256)
@@ -58,7 +59,7 @@ contract Resolver {     //Emit events in relevant places
         return token0 == token ? _reserve1 / _reserve0 : _reserve0 / _reserve1;
     }
 
-    function lpTokenToBaseTokenConversionRate(address lpToken)
+    function lpTokenToBaseTokenConversionRate(address lpToken)      //Not relevant anymore
         public
         view
         returns (uint256)
@@ -154,7 +155,7 @@ contract Resolver {     //Emit events in relevant places
         public
         view
         returns (uint256 _amount)
-    {
+    {       //This function gives the total value of the vault. We can just call totalAssets() function of the vault contract to get the total value of the vault in denomination asset
         uint256 netInvestedCapital = IVault(_vault).balance();
         address strategyContract = IVault(_vault).strategy();
         address lpPool = IStrategy(strategyContract).stake();
@@ -171,7 +172,7 @@ contract Resolver {     //Emit events in relevant places
     //After getting the cost we would compute the harvestability condition and call harvest.
     //1) Which account should have the GEL tokens in order for the call to execult successfully?
     //2) If each of the checker contracts need the GEL tokens to pay then this architecture won't work.
-    function costOfHarvest() public view returns (uint256 _amount) {
+    function costOfHarvest() public view returns (uint256 _amount) {        //Need to update this gasEstimation and gasPrice will change for DEx v3. Have to also account for any cost from gelato side.
         uint256 gasEstimation = 533966;
         uint256 gasPrice = 7303301330; //6;  //temmp //get price from some oracle;
 
@@ -183,7 +184,7 @@ contract Resolver {     //Emit events in relevant places
         return costOfHarvestBase;
     }
 
-    function getHarvestAmount(address _vault) public view returns (uint256) {
+    function getHarvestAmount(address _vault) public view returns (uint256) {       //Should also use the unharvested LP fees here with cake staking rewards. lpRewardsAvailable() function in the CakeLpStakingV2.sol returns this in the denomination asset of the vault.
         address strategyContract = IVault(_vault).strategy();
         uint256 currRewardsAvailable = IStrategy(strategyContract)
             .rewardsAvailable();
