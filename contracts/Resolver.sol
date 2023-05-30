@@ -7,6 +7,8 @@ import "./IStrategy.sol";
 import "./IPancakeFactory.sol";
 import "./IlpContract.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./IChainlinkPriceFeed.sol";
+
 
 contract Resolver {     //Emit events in relevant places
     using SafeMath for uint256;
@@ -16,21 +18,19 @@ contract Resolver {     //Emit events in relevant places
     address public PANCAKE_FACTORY;
     address public REWARD;
     address public NATIVE_GAS;
-    address public BASE_CURRENCY;
+
 
     //Constructor will stay the same
     constructor(
         address _riveraFactory,
-        address _PANCAKE_FACTORY,
+        address _PANCAKE_FACTORY,//0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865  V3 Factory
         address _REWARD,
-        address _NATIVE_GAS,
-        address _BASE_CURRENCY
+        address _NATIVE_GAS
     ) {
         riveraFactory = _riveraFactory;
         PANCAKE_FACTORY = _PANCAKE_FACTORY;
         REWARD = _REWARD;
         NATIVE_GAS = _NATIVE_GAS;
-        BASE_CURRENCY = _BASE_CURRENCY;
     }
 
     function arrangeTokens(address tokenA, address tokenB)
@@ -41,42 +41,43 @@ contract Resolver {     //Emit events in relevant places
         return tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
     }
 
-    function tokenToBaseTokenConversionRate(address token)      //Should change this function to use DEx V3. Follow what is done in convertAmount0ToAmount1 and convertAmount1ToAmount0 in CakeLpStakingV2.sol
+
+    function tokenToNativeTokenConversionRate(address feed)      //Should change this function to use DEx V3. Follow what is done in convertAmount0ToAmount1 and convertAmount1ToAmount0 in CakeLpStakingV2.sol
         public
         view
         returns (uint256)
     {
-        if (token == BASE_CURRENCY) {
-            return 1;
-        }
-        address lpAddress = IPancakeFactory(PANCAKE_FACTORY).getPair(
-            token,
-            BASE_CURRENCY
-        );
-        (uint112 _reserve0, uint112 _reserve1, ) = IlpContract(lpAddress)
-            .getReserves();
-        (address token0, address token1) = arrangeTokens(token, BASE_CURRENCY);
-        return token0 == token ? _reserve1 / _reserve0 : _reserve0 / _reserve1;
+        //get chainlink price feed
+        IChainlinkPriceFeed priceFeed = IChainlinkPriceFeed(feed);
+        (, int256 price, , , ) = priceFeed.latestRoundData();
+        return uint256(price);
     }
 
-    function lpTokenToBaseTokenConversionRate(address lpToken)      //Not relevant anymore
-        public
-        view
-        returns (uint256)
-    {
-        (uint112 _reserve0, uint112 _reserve1, ) = IlpContract(lpToken)
-            .getReserves();
-        address token0 = IlpContract(lpToken).token0();
-        address token1 = IlpContract(lpToken).token1();
-        uint256 reserve0InBaseToken = (tokenToBaseTokenConversionRate(token0)) *
-            _reserve0;
-        uint256 reserve1InBaseToken = (tokenToBaseTokenConversionRate(token1)) *
-            _reserve1;
-
-        uint256 lpTotalSuppy = IlpContract(lpToken).totalSupply();
-
-        return (reserve0InBaseToken + reserve1InBaseToken) / lpTotalSuppy;
-    }
+    // function tokenToBaseTokenConversion(address token,uint256 tokenAmount)      //Should change this function to use DEx V3. Follow what is done in convertAmount0ToAmount1 and convertAmount1ToAmount0 in CakeLpStakingV2.sol
+    //     public
+    //     view
+    //     returns (uint256 baseAmount)
+    // {
+    //     if (token == BASE_CURRENCY) {
+    //         return 1;
+    //     }
+    //     address stake = IPancakeFactory(PANCAKE_FACTORY).getPool(
+    //         token,
+    //         BASE_CURRENCY,
+    //         500
+    //     );
+    //     (uint160 sqrtPriceX96, , , , , , ) = IlpContract(stake)
+    //         .slot0();
+    //     baseAmount = IFullMathLib(fullMathLib).mulDiv(
+    //         IFullMathLib(fullMathLib).mulDiv(
+    //             tokenAmount,
+    //             FixedPoint96.Q96,
+    //             sqrtPriceX96
+    //         ),
+    //         FixedPoint96.Q96,
+    //         sqrtPriceX96
+    //     );
+    // }
 
     // fuction using new algo
     function checker()
@@ -156,12 +157,37 @@ contract Resolver {     //Emit events in relevant places
         view
         returns (uint256 _amount)
     {       //This function gives the total value of the vault. We can just call totalAssets() function of the vault contract to get the total value of the vault in denomination asset
-        uint256 netInvestedCapital = IVault(_vault).balance();
-        address strategyContract = IVault(_vault).strategy();
-        address lpPool = IStrategy(strategyContract).stake();
-        uint256 lpTokenValue = lpTokenToBaseTokenConversionRate(lpPool);
-        uint256 netInvestedCapitalBase = lpTokenValue * netInvestedCapital;
-        return netInvestedCapitalBase;
+        
+        uint256 netInvestedCapital = IVault(_vault).totalAssets();
+        //get vault asset
+        address vaultAsset = IVault(_vault).asset();
+        if(vaultAsset == NATIVE_GAS){
+            return netInvestedCapital;
+        }else{
+            //get asset feed address from strategy
+            address strategyContract = IVault(_vault).strategy();
+            address assettoNativeFeed = IStrategy(strategyContract).assettoNativeFeed();
+            uint256 vaultAssetValue = tokenToNativeTokenConversionRate(assettoNativeFeed);
+            //getdecimals
+            uint256 decimals= _getFeedDecimals(assettoNativeFeed);
+            uint256 netInvestedCapitalBase = (vaultAssetValue * netInvestedCapital)/(10**decimals);
+            return netInvestedCapitalBase;
+        }
+    }
+
+    function netCapitalDepositedTemp()
+        public
+        view
+        returns (uint256 _amount)
+    {       //This function gives the total value of the vault. We can just call totalAssets() function of the vault contract to get the total value of the vault in denomination asset
+        
+            uint256 netInvestedCapital = 20e18;
+            address assettoNativeFeed = 0xD5c40f5144848Bd4EF08a9605d860e727b991513;
+            uint256 vaultAssetValue = tokenToNativeTokenConversionRate(assettoNativeFeed);
+            //getdecimals
+            uint256 decimals= _getFeedDecimals(assettoNativeFeed);
+            uint256 netInvestedCapitalBase = (vaultAssetValue * netInvestedCapital)/(10**decimals);
+            return netInvestedCapitalBase;
     }
 
     //Cost of harvest does not represent the cost incurred by us here. Gelato has it's own additional cost as well. We should get the cost from gelato.
@@ -173,30 +199,48 @@ contract Resolver {     //Emit events in relevant places
     //1) Which account should have the GEL tokens in order for the call to execult successfully?
     //2) If each of the checker contracts need the GEL tokens to pay then this architecture won't work.
     function costOfHarvest() public view returns (uint256 _amount) {        //Need to update this gasEstimation and gasPrice will change for DEx v3. Have to also account for any cost from gelato side.
-        uint256 gasEstimation = 533966;
-        uint256 gasPrice = 7303301330; //6;  //temmp //get price from some oracle;
+        uint256 gasEstimation = 533966;  ///  todo: get this from gelato
+        // uint256 gasPrice = 7303301330; //6; tx.gasprice()
+        uint256 gasPrice = tx.gasprice ; //6; 
 
         uint256 costHarvest = gasEstimation * gasPrice;
-        uint256 nativeGasToBaseConversionRate = tokenToBaseTokenConversionRate(
-            NATIVE_GAS
-        );
-        uint256 costOfHarvestBase = nativeGasToBaseConversionRate * costHarvest;
-        return costOfHarvestBase;
+        
+        return costHarvest;
     }
+
 
     function getHarvestAmount(address _vault) public view returns (uint256) {       //Should also use the unharvested LP fees here with cake staking rewards. lpRewardsAvailable() function in the CakeLpStakingV2.sol returns this in the denomination asset of the vault.
+      
+        //call rewardsAvailable() function of the strategy contract and lpRewardsAvailable() function of the cake staking contract
+        uint256 lpRewardsAvailableNative;
         address strategyContract = IVault(_vault).strategy();
-        uint256 currRewardsAvailable = IStrategy(strategyContract)
+        uint256 lpRewardsAvailable = IStrategy(strategyContract)
+            .lpRewardsAvailable();
+        address vaultAsset = IVault(_vault).asset();
+        if(vaultAsset == NATIVE_GAS){
+            lpRewardsAvailableNative= lpRewardsAvailable;
+        }else{
+            //get asset feed address from strategy
+            address assettoNativeFeed = IStrategy(strategyContract).assettoNativeFeed();
+            //get  decimals
+            uint256 decimals= _getFeedDecimals(assettoNativeFeed);
+            uint256 vaultAssetValue = tokenToNativeTokenConversionRate(assettoNativeFeed);
+            lpRewardsAvailableNative = (vaultAssetValue * lpRewardsAvailable)/(10**decimals);
+        }
+        
+        uint256 rewardsAvailable = IStrategy(strategyContract)
             .rewardsAvailable();
-        uint256 rewardToBaseConversionRate = tokenToBaseTokenConversionRate(
-            REWARD
+        //get reward asset feed address from strategy
+        address rewardtoNativeFeed = IStrategy(strategyContract).rewardtoNativeFeed();
+        uint256 rewardAssetValue = tokenToNativeTokenConversionRate(
+            rewardtoNativeFeed
         );
-        uint256 currRewardsAvailableBase = currRewardsAvailable *
-            rewardToBaseConversionRate;
-        ///do the conversion
-        return currRewardsAvailableBase;
+        //get  decimals
+        uint256 decimals= _getFeedDecimals(rewardtoNativeFeed);
+        uint256 rewardsAvailableBase= (rewardsAvailable * rewardAssetValue)/(10**decimals);
+        return lpRewardsAvailableNative + rewardsAvailableBase;
     }
-
+ 
     function getStepwiseH(uint256 cost, uint256 vaultAmount)
         public
         pure
@@ -235,5 +279,10 @@ contract Resolver {     //Emit events in relevant places
         } else if (y != 0) {
             z = 1;
         }
+    }
+
+    function _getFeedDecimals(address feed) public view returns (uint8) {
+        IChainlinkPriceFeed priceFeed = IChainlinkPriceFeed(feed);
+        return priceFeed.decimals();
     }
 }
