@@ -1,41 +1,23 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
-import "./IStrategy.sol";
-import "./IVault.sol";
+pragma solidity ^0.8.0;
+import "./interfaces/IStrategy.sol";
+import "./interfaces/IVault.sol";
+import "./lib/WhitelistFilter.sol";
 
-error Not_whitelisted();
+contract Harvester is WhitelistFilter {
+    uint256 harvestRunId = 1;
 
-contract Harvester {        //Emit event on harvest to do analysis. Make the cost used to calculate harvestability of each vault and total cost paid to Gelato as part of the event.
-    address public whitelistedAddress;
-    address private immutable i_owner;
-    //Have a harvest run id here that keeps incrementing on every run
+    event HarvestRun(uint256 harvestRunId, uint256 numVaultsHarvested, address[] retVaults);
 
-    // Modifiers
-    modifier onlyOwner() {
-        require(
-            msg.sender == i_owner || msg.sender == whitelistedAddress,
-            "!not whitelisted"
-        );
-        _;
-    }
-
-    constructor() {
-        i_owner = msg.sender;
-        whitelistedAddress = msg.sender;
-    }
-
-    function updateWhitelist(address _whitelistedAddress) public onlyOwner {
-        whitelistedAddress = _whitelistedAddress;
-    }
-
-    function harvestVault(address[] memory retVaults) public onlyOwner {
+    function harvestVault(address[] memory retVaults) public onlyWhitelisted {
         for (uint256 i = 0; i < retVaults.length; i++) {
             if (retVaults[i] == address(0)) {
-                continue;
+                break;
             } else {
                 address strategyContract = IVault(retVaults[i]).strategy();
                 IStrategy(strategyContract).harvest();
             }
         }
+        emit HarvestRun(harvestRunId++, retVaults.length, retVaults);
     }
 }
