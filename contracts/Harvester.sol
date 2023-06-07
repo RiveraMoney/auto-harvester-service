@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 import "./interfaces/IStrategy.sol";
-import "./interfaces/IVault.sol";
+import "./interfaces/IRiveraAutoCompoundingVaultV2.sol";
 import "./lib/WhitelistFilter.sol";
 
 contract Harvester is WhitelistFilter {
@@ -14,7 +14,7 @@ contract Harvester is WhitelistFilter {
             if (retVaults[i] == address(0)) {
                 break;
             } else {
-                address strategyContract = IVault(retVaults[i]).strategy();
+                address strategyContract = IRiveraAutoCompoundingVaultV2(retVaults[i]).strategy();
                 IStrategy(strategyContract).harvest();
             }
         }

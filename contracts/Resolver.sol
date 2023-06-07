@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 import "./interfaces/IRiveraFactory.sol";
 import "./interfaces/IHarvestor.sol";
-import "./interfaces/IVault.sol";
+import "./interfaces/IRiveraAutoCompoundingVaultV2.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IPancakeFactory.sol";
 import "./interfaces/IlpContract.sol";
@@ -48,6 +48,7 @@ contract Resolver is Ownable {     //Emit events in relevant places
     function checker() external view returns (bool canExec, bytes memory execPayload) {
         uint256 j = 0;
         address[] memory allVaults = _getAllVaults();
+        require(allVaults.length > 0, "Resolver: No vaults deployed");
         address[] memory retVaults = new address[](allVaults.length);
         canExec = false;
 
@@ -79,12 +80,12 @@ contract Resolver is Ownable {     //Emit events in relevant places
     }
 
     function netCapitalDeposited(address _vault) public view returns (uint256 _amount) {
-        uint256 netInvestedCapital = IVault(_vault).totalAssets();
-        address vaultAsset = IVault(_vault).asset();
+        uint256 netInvestedCapital = IRiveraAutoCompoundingVaultV2(_vault).totalAssets();
+        address vaultAsset = IRiveraAutoCompoundingVaultV2(_vault).asset();
         if(vaultAsset == NATIVE_GAS){
             return netInvestedCapital;
         }else{
-            address strategyContract = IVault(_vault).strategy();
+            address strategyContract = IRiveraAutoCompoundingVaultV2(_vault).strategy();
             address assettoNativeFeed = IStrategy(strategyContract).assettoNativeFeed();
             uint256 vaultAssetValue = tokenToNativeTokenConversionRate(assettoNativeFeed);
             uint256 decimals = _getFeedDecimals(assettoNativeFeed);
@@ -109,9 +110,9 @@ contract Resolver is Ownable {     //Emit events in relevant places
 
     function getHarvestAmount(address _vault) public view returns (uint256) {
         uint256 lpRewardsAvailableNative;
-        address strategyContract = IVault(_vault).strategy();
+        address strategyContract = IRiveraAutoCompoundingVaultV2(_vault).strategy();
         uint256 lpRewardsAvailable = IStrategy(strategyContract).lpRewardsAvailable();
-        address vaultAsset = IVault(_vault).asset();
+        address vaultAsset = IRiveraAutoCompoundingVaultV2(_vault).asset();
         if(vaultAsset == NATIVE_GAS) {
             lpRewardsAvailableNative = lpRewardsAvailable;
         } else {
@@ -127,8 +128,10 @@ contract Resolver is Ownable {     //Emit events in relevant places
     }
  
     function getStepwiseH(uint256 cost, uint256 vaultAmount) public pure returns (uint256 H) {
-        uint256 x = (1 + Math.sqrt(1 + 8 * vaultAmount / cost)) / (2 * vaultAmount / cost);
-        H = x * vaultAmount;
+        // uint256 x = (1 + Math.sqrt(1 + 8 * vaultAmount / cost)) / (2 * vaultAmount / cost);
+        // H = x * vaultAmount;
+
+        H=(1 + Math.sqrt(1 + 8 * vaultAmount / cost))*(cost/2);
     }
 
     function setAverageGasOfHarvestingSingleVault(uint32 averageGasOfHarvestingSingleVault_) external onlyOwner {
@@ -140,4 +143,5 @@ contract Resolver is Ownable {     //Emit events in relevant places
         IChainlinkPriceFeed priceFeed = IChainlinkPriceFeed(feed);
         return priceFeed.decimals();
     }
+
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IStrategy {
     //Events
@@ -19,11 +19,11 @@ interface IStrategy {
 
     function stake() external view returns (address);
 
-    function reward() external view returns (IERC20);
+    function reward() external view returns (address);
 
-    function lpToken0() external view returns (IERC20);
+    function lpToken0() external view returns (address);
 
-    function lpToken1() external view returns (IERC20);
+    function lpToken1() external view returns (address);
 
     function beforeDeposit() external;
 
